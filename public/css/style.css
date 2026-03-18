@@ -1,0 +1,105 @@
+:root {
+  --utyoube-bg: #0f0f0f;
+  --utyoube-card: #181818;
+  --utyoube-soft: #212121;
+  --utyoube-red: #dc2626;
+  --utyoube-border: #2a2a2a;
+}
+
+body {
+  background-color: var(--utyoube-bg);
+  font-family: "Poppins", sans-serif;
+  color: #e5e5e5;
+  line-height: 1.7;
+}
+
+header,
+footer {
+  background-color: var(--utyoube-soft);
+  border-bottom: 1px solid var(--utyoube-border);
+}
+
+section {
+  margin: 2.5rem 0;
+}
+
+p {
+  letter-spacing: 0.5px;
+}
+
+/* Generic Card (used everywhere) */
+.utyoube-card {
+  background-color: var(--utyoube-card);
+  border: 1px solid var(--utyoube-border);
+  border-radius: 14px;
+}
+
+/* Advertisement block */
+.utyoube-ad {
+  max-width: 780px;
+  margin: auto;
+  padding: 1.5rem;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #181818, #202020);
+  border: 1px solid #2f2f2f;
+  text-align: center;
+}
+
+.utyoube-ad-title {
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+.utyoube-ad-text {
+  color: #22c55e;
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+.utyoube-btn {
+  background-color: var(--utyoube-red);
+  color: #ffffff;
+  border-radius: 9999px;
+  padding: 0.5rem 1.6rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.utyoube-btn:hover {
+  background-color: #b91c1c;
+}
+
+/* Disabled → Enabled submit fields animation */
+.hidden-fields {
+  opacity: 0.2;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+
+.visible-fields {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Pagination - Active Page Highlight */
+#pagination button.active-page {
+  background-color: var(--utyoube-red);
+  /* YouTube-like red */
+  color: #ffffff;
+  border-color: var(--utyoube-red);
+  font-weight: 600;
+}
+
+/* Custom Select Chevron */
+.select-custom-arrow {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23e5e5e5' stroke-width='2'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem top 12px;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+}
