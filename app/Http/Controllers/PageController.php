@@ -12,7 +12,6 @@ use Illuminate\Http\Request;
 
 class PageController extends Controller
 {
-    private const DAILY_CHANCES = 6;
     private const MIN_VIEW_SECONDS = 5;
     private const UNLOCK_TTL_SECONDS = 600;
 
@@ -23,13 +22,10 @@ class PageController extends Controller
     public function index(Request $request)
     {
         $stats = UtyoubeStatistic::bumpVisit($request);
-        $chanceState = $this->getChanceState($request);
 
         return view('home', [
             'stats' => $stats,
             'winners' => UtyoubeWinner::todaysWinnersByChance(),
-            'usedChances' => array_map('intval', array_keys($chanceState['used'])),
-            'remainingChances' => max(0, self::DAILY_CHANCES - count($chanceState['used'])),
             'minViewSeconds' => self::MIN_VIEW_SECONDS,
         ]);
     }
@@ -79,15 +75,6 @@ class PageController extends Controller
         $clicks = UtyoubeWinner::incrementClicks($winnerId);
         $this->store->incrementWinnerClicks();
 
-        if (isset($chanceState['used'][$chance])) {
-            return response()->json([
-                'success' => true,
-                'clicks' => $clicks,
-                'already_used' => true,
-                'message' => 'This chance is already used for today.',
-            ]);
-        }
-
         $token = bin2hex(random_bytes(20));
         $now = Carbon::now();
 
@@ -135,13 +122,6 @@ class PageController extends Controller
         $chance = (int) $request->input('chance');
         $chanceState = $this->getChanceState($request);
 
-        if (isset($chanceState['used'][$chance])) {
-            return response()->json([
-                'success' => false,
-                'error' => 'This chance has already been used today.',
-            ], 422);
-        }
-
         $unlock = $chanceState['unlocked'][$chance] ?? null;
         if (!is_array($unlock) || ($unlock['token'] ?? null) !== $request->input('access_token')) {
             return response()->json([
@@ -176,16 +156,12 @@ class PageController extends Controller
 
         $this->persistSubmissionToDatabase($request, $chance);
 
-        $chanceState['used'][$chance] = $nowTimestamp;
         unset($chanceState['unlocked'][$chance]);
         $this->putChanceState($request, $chanceState);
 
-        $remaining = max(0, self::DAILY_CHANCES - count($chanceState['used']));
-
         return response()->json([
             'success' => true,
-            'message' => 'Your YouTube link has been submitted for this chance successfully.',
-            'remaining_chances' => $remaining,
+            'message' => 'Your YouTube link has been submitted successfully.',
         ]);
     }
 
@@ -219,18 +195,14 @@ class PageController extends Controller
         $submissionDate = Carbon::today()->toDateString();
         $sessionId = $request->hasSession() ? $request->session()->getId() : null;
 
-        UtyoubeSubmission::query()->updateOrCreate(
-            [
-                'submission_date' => $submissionDate,
-                'session_id' => $sessionId,
-                'chance_number' => $chance,
-            ],
-            [
-                'youtube_link' => (string) $request->input('link'),
-                'access_token' => (string) $request->input('access_token'),
-                'ip_address' => $request->ip(),
-                'submitted_at' => $now,
-            ]
-        );
+        UtyoubeSubmission::query()->create([
+            'submission_date' => $submissionDate,
+            'session_id' => $sessionId,
+            'chance_number' => $chance,
+            'youtube_link' => (string) $request->input('link'),
+            'access_token' => (string) $request->input('access_token'),
+            'ip_address' => $request->ip(),
+            'submitted_at' => $now,
+        ]);
     }
 }

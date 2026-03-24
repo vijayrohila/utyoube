@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\PageController;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PageController::class, 'index'])->name('home');
@@ -14,8 +13,6 @@ Route::get('/api/winners', [PageController::class, 'winners'])->name('api.winner
 Route::post('/api/click', [PageController::class, 'click'])->name('api.click');
 Route::post('/api/winner-click', [PageController::class, 'winnerClick'])->name('api.winner-click');
 Route::post('/submit-link', [PageController::class, 'submitLink'])->name('submit.link');
-
-Auth::routes();
 
 Route::get('/home', function () {
     return redirect()->route('home');

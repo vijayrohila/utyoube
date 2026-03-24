@@ -74,12 +74,10 @@
       @php
         $chances = [1, 2, 3, 4, 5, 6];
         $winnersMap = $winners ?? [];
-        $usedChancesMap = array_flip($usedChances ?? []);
       @endphp
 
       @foreach($chances as $chance)
       @php
-        $isUsed = isset($usedChancesMap[$chance]);
         $chanceWinner = $winnersMap[$chance] ?? null;
         $chanceLink = $chanceWinner ? $chanceWinner['youtube_link'] : 'https://www.youtube.com';
         $chanceClicks = $chanceWinner ? $chanceWinner['clicks'] : 0;
@@ -102,25 +100,15 @@
           </div>
         </div>
 
-        @if($isUsed)
-        <p class="mb-4 rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2 text-center text-sm font-semibold text-green-400">
-          This chance is already used today.
-        </p>
-        @else
-        <p class="mb-4 text-center text-xs text-gray-400">
-          Click Past Day Winner, watch for at least {{ $minViewSeconds ?? 5 }} seconds, then come back to submit.
-        </p>
-        @endif
-
         <!-- Hidden until wait condition passes -->
-        <div id="utyoubeFields{{ $chance }}" class="{{ $isUsed ? 'visible-fields' : 'hidden-fields' }}">
+        <div id="utyoubeFields{{ $chance }}" class="hidden-fields">
           <input id="utyoubeInput{{ $chance }}" type="text" placeholder="Paste your YouTube link here...."
             class="w-full bg-[#202020] border border-gray-700 rounded-md p-2 mb-4 focus:ring-2 focus:ring-red-600"
-            {{ $isUsed ? 'disabled' : 'disabled' }}>
+            disabled>
 
           <button id="utyoubeSubmit{{ $chance }}" class="w-full bg-red-600 text-white py-2 rounded-md hover:bg-red-700 font-semibold"
-            {{ $isUsed ? 'disabled' : 'disabled' }}>
-            {{ $isUsed ? 'Submitted Today' : 'Submit' }}
+            disabled>
+            Submit
           </button>
         </div>
       </div>
@@ -132,7 +120,6 @@
   <!-- Motivation -->
   <section class="text-center mt-0">
     <h3 class="text-xl font-semibold mb-8">Submit Consistently – Never Give Up!</h3>
-    <p class="mb-6 text-sm text-gray-300">Remaining chances today: <span id="remainingChances" class="text-green-500 font-semibold">{{ $remainingChances ?? 6 }}</span> / 6</p>
     <a href="{{ url('/info') }}" class="inline-block bg-white px-4 py-2 rounded-lg hover:shadow-lg transition"
       style="color: var(--utyoube-red); font-weight: 600;">Information
     </a>
@@ -301,11 +288,6 @@
 
         try {
           const data = await updateClicks(chance);
-          if (data.already_used) {
-            alert(data.message || 'This chance is already used today.');
-            window.open(btn.href, '_blank');
-            return;
-          }
 
           if (data.success && data.token && data.available_at) {
             setChanceAccess(chance, {
@@ -344,9 +326,6 @@
           .then(data => {
             if (data.success) {
               alert(data.message);
-              if (typeof data.remaining_chances !== 'undefined') {
-                document.getElementById('remainingChances').textContent = data.remaining_chances;
-              }
               setTimeout(() => {
                 clearChanceAccess(chance);
                 input.value = '';
