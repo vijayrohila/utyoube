@@ -20,9 +20,9 @@ Route::get('/home', function () {
 
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware('guest')->group(function () {
-            Route::get('/login', [AdminController::class, 'loginForm'])->name('login');
-            Route::post('/login', [AdminController::class, 'login'])->name('login.post')->middleware('throttle:5,1');
-        });
+        Route::get('/login', [AdminController::class, 'loginForm'])->name('login');
+        Route::post('/login', [AdminController::class, 'login'])->name('login.post')->middleware('throttle:5,1');
+    });
 
     Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');

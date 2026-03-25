@@ -54,13 +54,13 @@ class UtyoubeWinner extends Model
     }
 
     /**
-     * Return all of today's winners keyed by chance_number (1-6).
+     * Return all of yesterday's winners keyed by chance_number (1-6).
      * Missing chance numbers will simply be absent from the array.
      */
     public static function todaysWinnersByChance(): array
     {
         return self::query()
-            ->whereDate('winner_date', today())
+            ->whereDate('winner_date', today()->subDay())
             ->get()
             ->keyBy('chance_number')
             ->all();
