@@ -18,14 +18,14 @@ return new class extends Migration
 
         Schema::create('utyoube_winners', function (Blueprint $table) {
             $table->id();
-            $table->date('winner_date')->index();
+            $table->date('winner_date');
             $table->unsignedTinyInteger('chance_number')->default(1);
             $table->text('youtube_link');
             $table->unsignedInteger('total_submissions')->default(0);
             $table->unsignedBigInteger('clicks')->default(0);
             $table->timestamps();
 
-            $table->unique(['winner_date', 'chance_number'], 'utyoube_winners_date_chance_unique');
+            $table->index(['winner_date', 'chance_number'], 'utyoube_winners_winner_date_chance_index');
         });
 
         Schema::create('utyoube_submissions', function (Blueprint $table) {
@@ -39,11 +39,6 @@ return new class extends Migration
             $table->dateTime('unlocked_at')->nullable();
             $table->dateTime('submitted_at')->nullable();
             $table->timestamps();
-
-            $table->unique(
-                ['submission_date', 'session_id', 'chance_number'],
-                'utyoube_submissions_daily_session_chance_unique'
-            );
         });
 
         Schema::create('utyoube_statistics', function (Blueprint $table) {

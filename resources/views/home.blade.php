@@ -168,7 +168,8 @@
         <thead class="bg-[#202020] border-b border-gray-700">
           <tr>
             <th class="px-3 py-3">Date</th>
-            <th class="px-3 py-3">Total Links Submitted</th>
+            <th class="px-3 py-3">Total links</th>
+            <th class="px-3 py-3">Submissions</th>
             <th class="px-3 py-3">Winners</th>
             <th class="px-3 py-3">Winner Profit by Visits</th>
           </tr>
@@ -634,14 +635,14 @@
         renderPagination();
       } catch (error) {
         console.error('Error fetching winners:', error);
-        tableBody.innerHTML = '<tr><td colspan="4" class="py-4 text-red-500 text-center">Failed to load winners history.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="5" class="py-4 text-red-500 text-center">Failed to load winners history.</td></tr>';
       }
     }
 
     function renderTable(data) {
       tableBody.innerHTML = '';
       if (!data || data.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="4" class="py-4 text-gray-500 text-center">No records found.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="5" class="py-4 text-gray-500 text-center">No records found.</td></tr>';
         paginationDiv.innerHTML = '';
         return;
       }
@@ -654,6 +655,7 @@
           ? `<td rowspan="${dateRowspan}" class="px-3 py-4 align-middle text-gray-300 text-xs sm:text-base whitespace-nowrap">${escapeHtml(dateLabel)}</td>`
           : '';
         tr.innerHTML = dateTd + `
+          <td class="px-3 py-4 font-semibold text-gray-200 text-xs sm:text-base">${formatKM(row.total_links != null ? row.total_links : 0)}</td>
           <td class="px-3 py-4 font-semibold text-gray-200 text-xs sm:text-base">${formatKM(row.total_submissions)}</td>
           <td class="px-3 py-4">
             <a href="${escapeHtml(row.youtube_link)}" target="_blank" data-winner-link-id="${row.id}"

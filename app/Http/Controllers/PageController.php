@@ -10,6 +10,7 @@ use App\Support\UtyoubeDataStore;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PageController extends Controller
 {
@@ -158,7 +159,10 @@ class PageController extends Controller
             'submitted_on' => Carbon::today()->toDateString(),
         ]);
 
-        $this->persistSubmissionToDatabase($request, $chance);
+        DB::transaction(function () use ($request, $chance): void {
+            $this->persistSubmissionToDatabase($request, $chance);
+            UtyoubeWinner::incrementSubmissionsForDisplayedChance($chance);
+        });
 
         unset($chanceState['unlocked'][$chance]);
         $this->putChanceState($request, $chanceState);

@@ -15,7 +15,7 @@ class PickDailyWinnersCommand extends Command
         {--winner-date= : Winner date to write to (Y-m-d). Defaults to today}
         {--dry-run : Show what would be selected without writing changes}';
 
-    protected $description = 'Pick 1 random submission per chance (1-6) from past day, store in winners, then delete all source-day submissions.';
+    protected $description = 'Pick 1 random submission per chance (1-6) from past day; set total_links to pool size, total_submissions to 0; then delete source-day submissions.';
 
     public function handle(): int
     {
@@ -80,7 +80,8 @@ class PickDailyWinnersCommand extends Command
                     'winner_date' => $winnerDate->toDateString(),
                     'chance_number' => $chance,
                     'youtube_link' => (string) $picked->youtube_link,
-                    'total_submissions' => $totalForChance,
+                    'total_links' => $totalForChance,
+                    'total_submissions' => 0,
                     'clicks' => 0,
                 ]);
 

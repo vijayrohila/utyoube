@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
@@ -11,6 +12,7 @@ class UtyoubeWinner extends Model
         'winner_date',
         'chance_number',
         'youtube_link',
+        'total_links',
         'total_submissions',
         'clicks',
     ];
@@ -54,16 +56,42 @@ class UtyoubeWinner extends Model
     }
 
     /**
-     * Return all of yesterday's winners keyed by chance_number (1-6).
-     * Missing chance numbers will simply be absent from the array.
+     * Winner rows for "Past Day Winner" on the home page: same calendar day as cron (today).
+     */
+    public static function displayedWinnerDate(): Carbon
+    {
+        return today();
+    }
+
+    /**
+     * Return winners for the home "Past Day Winner" section, keyed by chance_number (1-6).
+     * If multiple rows share the same date + chance, the newest row (highest id) is used.
      */
     public static function todaysWinnersByChance(): array
     {
         return self::query()
-            ->whereDate('winner_date', today()->subDay())
+            ->whereDate('winner_date', self::displayedWinnerDate())
+            ->orderByDesc('id')
             ->get()
+            ->unique('chance_number')
             ->keyBy('chance_number')
             ->all();
+    }
+
+    /**
+     * After a successful submit for this chance, bump total_submissions on today's winner row (latest id).
+     */
+    public static function incrementSubmissionsForDisplayedChance(int $chance): void
+    {
+        $winner = self::query()
+            ->whereDate('winner_date', self::displayedWinnerDate())
+            ->where('chance_number', $chance)
+            ->orderByDesc('id')
+            ->first();
+
+        if ($winner) {
+            $winner->increment('total_submissions');
+        }
     }
 
     /**
@@ -104,6 +132,7 @@ class UtyoubeWinner extends Model
                     'winner_date' => $winner->winner_date?->toDateString() ?? '',
                     'chance_number' => (int) $winner->chance_number,
                     'youtube_link' => (string) $winner->youtube_link,
+                    'total_links' => (int) $winner->total_links,
                     'total_submissions' => (int) $winner->total_submissions,
                     'clicks' => (int) $winner->clicks,
                 ];

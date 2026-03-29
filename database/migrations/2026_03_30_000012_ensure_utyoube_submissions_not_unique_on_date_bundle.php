@@ -10,7 +10,8 @@ return new class extends Migration
     private const INDEX = 'utyoube_submissions_daily_session_chance_unique';
 
     /**
-     * Allow many rows per submission_date (no composite unique on date + session + chance).
+     * submission_date (and session/chance bundle) must not be unique — many rows per day are allowed.
+     * Idempotent: safe if the index was never created or was already dropped.
      */
     public function up(): void
     {
@@ -47,20 +48,8 @@ return new class extends Migration
         }
     }
 
-    /**
-     * Restore legacy uniqueness (not recommended for current app logic).
-     */
     public function down(): void
     {
-        if (! Schema::hasTable('utyoube_submissions')) {
-            return;
-        }
-
-        Schema::table('utyoube_submissions', function (Blueprint $table): void {
-            $table->unique(
-                ['submission_date', 'session_id', 'chance_number'],
-                self::INDEX
-            );
-        });
+        // Do not re-add uniqueness; see 2026_03_24_000007 down() if rollback is required.
     }
 };

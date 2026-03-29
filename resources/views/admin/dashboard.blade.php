@@ -218,7 +218,13 @@
             </div>
 
             <div>
-              <label class="block text-sm font-semibold text-gray-300 mb-2">Submissions</label>
+              <label class="block text-sm font-semibold text-gray-300 mb-2">Total links (selection pool)</label>
+              <input type="number" name="total_links" required value="0" min="0" step="1" class="block w-full bg-[#0f0f0f] border border-[#3a3a3a] rounded-lg text-white shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm h-11 px-4">
+              <p data-error-for="total_links" class="hidden mt-2 text-xs text-red-400"></p>
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-300 mb-2">Submissions (Past Day Winner)</label>
               <input type="number" name="submissions" required value="0" min="0" step="1" class="block w-full bg-[#0f0f0f] border border-[#3a3a3a] rounded-lg text-white shadow-sm focus:ring-red-500 focus:border-red-500 sm:text-sm h-11 px-4">
               <p data-error-for="submissions" class="hidden mt-2 text-xs text-red-400"></p>
             </div>
@@ -248,12 +254,13 @@
           <tr>
             <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Date</th>
             <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">YouTube Link</th>
+            <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Total links</th>
             <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Submissions</th>
             <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Clicks</th>
           </tr>
         </thead>
         <tbody id="winners-table-body" class="divide-y divide-[#2a2a2a]">
-          <tr><td colspan="4" class="px-6 py-12 text-center text-gray-500 italic">Loading...</td></tr>
+          <tr><td colspan="5" class="px-6 py-12 text-center text-gray-500 italic">Loading...</td></tr>
         </tbody>
       </table>
     </div>
@@ -280,7 +287,7 @@
     currentSearch = search;
 
     const tbody = document.getElementById('winners-table-body');
-    tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-12 text-center text-gray-500 italic">Loading...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-12 text-center text-gray-500 italic">Loading...</td></tr>';
 
     const url = `{{ route('admin.api.winners') }}?p=${page}&limit=${limit}&q=${encodeURIComponent(search)}`;
 
@@ -297,7 +304,7 @@
         window.history.pushState({}, '', newUrl);
       })
       .catch(() => {
-        tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-12 text-center text-red-500 italic">Error loading data.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-12 text-center text-red-500 italic">Error loading data.</td></tr>';
       });
   }
 
@@ -338,7 +345,7 @@
   function renderTable(winners) {
     const tbody = document.getElementById('winners-table-body');
     if (!winners || winners.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-12 text-center text-gray-500 italic">No winner history records found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-12 text-center text-gray-500 italic">No winner history records found.</td></tr>';
       return;
     }
     const prepared = rowsWithMergedDateColumn(winners);
@@ -361,8 +368,16 @@
         </td>
         <td class="px-6 py-5 whitespace-nowrap text-sm text-center">
           <div class="flex items-center justify-center space-x-2">
+            <span class="text-amber-200/90 font-medium">${formatNumber(winner.total_links != null ? winner.total_links : 0)}</span>
+            <button onclick="editWinnerTotalLinks(${winner.id}, ${winner.total_links != null ? winner.total_links : 0})" class="text-gray-600 hover:text-white transition-colors p-1 opacity-0 group-hover:opacity-100" title="Edit pool size (links in draw)">
+              <i class="fa-solid fa-pen text-[10px]"></i>
+            </button>
+          </div>
+        </td>
+        <td class="px-6 py-5 whitespace-nowrap text-sm text-center">
+          <div class="flex items-center justify-center space-x-2">
             <span class="text-white font-medium">${formatNumber(winner.total_submissions)}</span>
-            <button onclick="editWinnerSubmissions(${winner.id}, ${winner.total_submissions})" class="text-gray-600 hover:text-white transition-colors p-1 opacity-0 group-hover:opacity-100">
+            <button onclick="editWinnerSubmissions(${winner.id}, ${winner.total_submissions})" class="text-gray-600 hover:text-white transition-colors p-1 opacity-0 group-hover:opacity-100" title="Past Day Winner submits">
               <i class="fa-solid fa-pen text-[10px]"></i>
             </button>
           </div>
@@ -528,9 +543,16 @@
   }
 
   function editWinnerSubmissions(id, current) {
-    const val = prompt("Enter new Total Submissions:", current);
+    const val = prompt("Submissions (Past Day Winner link — user submits):", current);
     if (val !== null && val !== "" && !isNaN(val)) {
       updateStat('update_winner', {id, submissions: val}, null, null);
+    }
+  }
+
+  function editWinnerTotalLinks(id, current) {
+    const val = prompt("Total links (pool size used for selection):", current);
+    if (val !== null && val !== "" && !isNaN(val)) {
+      updateStat('update_winner', {id, total_links: val}, null, null);
     }
   }
 

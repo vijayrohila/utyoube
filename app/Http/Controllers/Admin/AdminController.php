@@ -157,6 +157,7 @@ class AdminController extends Controller
                     'id'            => ['required', 'integer', 'min:1'],
                     'clicks'        => ['nullable', 'integer', 'min:0'],
                     'submissions'   => ['nullable', 'integer', 'min:0'],
+                    'total_links'   => ['nullable', 'integer', 'min:0'],
                     'link'          => ['nullable', 'url', 'max:500'],
                     'chance_number' => ['nullable', 'integer', 'between:1,6'],
                     'winner_date'   => ['nullable', 'date'],
@@ -170,6 +171,7 @@ class AdminController extends Controller
                 $payload = [];
                 if ($request->filled('clicks'))        $payload['clicks']            = (int)    $request->input('clicks');
                 if ($request->filled('submissions'))   $payload['total_submissions'] = (int)    $request->input('submissions');
+                if ($request->filled('total_links'))   $payload['total_links']       = (int)    $request->input('total_links');
                 if ($request->filled('link'))          $payload['youtube_link']      = (string) $request->input('link');
                 if ($request->filled('chance_number')) $payload['chance_number']     = (int)    $request->input('chance_number');
                 if ($request->filled('winner_date'))   $payload['winner_date']       = $request->input('winner_date');
@@ -185,6 +187,7 @@ class AdminController extends Controller
                     'date'          => ['required', 'date'],
                     'chance_number' => ['required', 'integer', 'between:1,6'],
                     'link'          => ['required', 'url', 'max:500'],
+                    'total_links'   => ['required', 'integer', 'min:0'],
                     'submissions'   => ['required', 'integer', 'min:0'],
                     'clicks'        => ['required', 'integer', 'min:0'],
                 ]);
@@ -196,6 +199,7 @@ class AdminController extends Controller
                     ],
                     [
                         'youtube_link'      => $request->input('link'),
+                        'total_links'       => (int) $request->input('total_links'),
                         'total_submissions' => (int) $request->input('submissions'),
                         'clicks'            => (int) $request->input('clicks'),
                     ]
