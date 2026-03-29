@@ -2,6 +2,10 @@
 
 @section('title', 'Promote Your YouTube Video Links for Free by Luck - Never Give Up!')
 
+@section('head')
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+@endsection
+
 @section('content')
 
 <!-- ===============================
@@ -190,6 +194,53 @@
 
 @section('scripts')
 <script>
+  function utyoubeSwalBase() {
+    return {
+      background: '#181818',
+      color: '#e5e7eb',
+      confirmButtonColor: '#dc2626',
+      confirmButtonText: 'OK',
+      customClass: { popup: 'utyoube-swal-popup' },
+    };
+  }
+
+  function utyoubeAlert(title, text, icon) {
+    if (typeof Swal === 'undefined') {
+      window.alert(text || title);
+      return Promise.resolve();
+    }
+    return Swal.fire({
+      ...utyoubeSwalBase(),
+      icon: icon || 'info',
+      title: title || '',
+      text: text || '',
+    });
+  }
+
+  function showEarlyReturnSwal(seconds) {
+    const s = Math.max(1, parseInt(seconds, 10) || 5);
+    if (typeof Swal === 'undefined') {
+      window.alert('Please watch the video for at least ' + s + ' seconds, then try again.');
+      return Promise.resolve();
+    }
+    return Swal.fire({
+      ...utyoubeSwalBase(),
+      icon: 'info',
+      title: 'Almost there!',
+      confirmButtonText: 'Got it',
+      width: '32rem',
+      html:
+        '<p class="text-left mb-4 leading-relaxed" style="color:#e5e7eb">' +
+        "Hey submitter, it's too fast. One day your link will win, and someone will have to watch your YouTube video for at least <strong>" +
+        s +
+        '</strong> seconds. Today is your turn to watch.</p>' +
+        '<p class="text-left leading-relaxed" style="color:#e5e7eb">' +
+        "Now click again, watch someone's video for at least <strong>" +
+        s +
+        '</strong> seconds, then come back to submit your YouTube video link — Thanks!</p>',
+    });
+  }
+
   let waitTimeMs = {{ ($minViewSeconds ?? 5) * 1000 }};
   const STORAGE_KEY = 'utyoubeChanceAccess';
 
@@ -285,8 +336,10 @@
     const leftAtMs = Number(access.leftAtMs || 0);
     const timeAwayMs = returnedAtMs - leftAtMs;
     if (timeAwayMs < requiredWaitMs(access)) {
+      const secs = requiredWaitSeconds(access);
       clearChanceAccess(chance);
       hideFields(chance);
+      showEarlyReturnSwal(secs);
       return;
     }
 
@@ -294,8 +347,10 @@
       setChanceAccess(chance, { ...access, canSubmit: true });
       showFields(chance);
     } else {
+      const secs = requiredWaitSeconds(access);
       clearChanceAccess(chance);
       hideFields(chance);
+      showEarlyReturnSwal(secs);
       return;
     }
   }
@@ -387,19 +442,25 @@
         if (!access || !access.token) {
           clearChanceAccess(chance);
           hideFields(chance);
-          alert('Click on Past Day Winner first to unlock this chance.');
+          utyoubeAlert('Unlock required', 'Click on Past Day Winner first to unlock this chance.', 'warning');
           return;
         }
         if (!canChanceSubmit(access) || !access.canSubmit) {
-          alert('Please spend at least ' + requiredWaitSeconds(access) + ' seconds on the Past Day Winner video before submitting.');
+          showEarlyReturnSwal(requiredWaitSeconds(access));
           return;
         }
         if (Math.floor(Date.now() / 1000) < access.availableAt) {
-          alert('Please spend at least ' + requiredWaitSeconds(access) + ' seconds on the Past Day Winner video before submitting.');
+          showEarlyReturnSwal(requiredWaitSeconds(access));
           return;
         }
-        if (!link) { alert('Paste your YouTube link before submitting.'); return; }
-        if (!isValidYoutubeUrl(link)) { alert('Please enter a valid YouTube link.'); return; }
+        if (!link) {
+          utyoubeAlert('Link required', 'Paste your YouTube link before submitting.', 'warning');
+          return;
+        }
+        if (!isValidYoutubeUrl(link)) {
+          utyoubeAlert('Invalid link', 'Please enter a valid YouTube link.', 'error');
+          return;
+        }
 
         const formData = new FormData();
         formData.append('link', link);
@@ -411,19 +472,30 @@
           .then(r => r.json())
           .then(data => {
             if (data.success) {
-              alert(data.message);
-              setTimeout(() => {
+              if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                  ...utyoubeSwalBase(),
+                  icon: 'success',
+                  title: 'Submitted',
+                  text: data.message || 'Your link was submitted.',
+                }).then(() => {
+                  clearChanceAccess(chance);
+                  input.value = '';
+                  location.reload();
+                });
+              } else {
+                window.alert(data.message);
                 clearChanceAccess(chance);
                 input.value = '';
                 location.reload();
-              }, 1000);
+              }
             } else {
               clearChanceAccess(chance);
               hideFields(chance);
-              alert(data.error || 'Something went wrong.');
+              utyoubeAlert('Could not submit', data.error || 'Something went wrong.', 'error');
             }
           })
-          .catch(() => alert('An error occurred. Please try again.'));
+          .catch(() => utyoubeAlert('Error', 'An error occurred. Please try again.', 'error'));
       });
     }
   })();

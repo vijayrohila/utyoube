@@ -71,6 +71,12 @@ p {
   background-color: #b91c1c;
 }
 
+/* SweetAlert2 — match uTyoube dark UI */
+.utyoube-swal-popup {
+  border: 1px solid #3f3f46 !important;
+  border-radius: 12px !important;
+}
+
 /* Winners history: vertical dividers between columns (home + admin) */
 .winners-table-vertical-lines {
   border-collapse: collapse;
