@@ -4,3 +4,5 @@ config/app.php
 admin/config/app.php
 public/images/upload
 .htaccess
+node_modules
+vendor
