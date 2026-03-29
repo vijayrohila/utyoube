@@ -88,6 +88,58 @@
 
     </div>
 
+    <!-- Past Day Winner: minimum wait (seconds) -->
+    <div class="bg-[#181818] rounded-2xl border border-[#2a2a2a] p-6 shadow-sm">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-bold text-white">Past Day Winner wait time</h2>
+          <p class="mt-1 text-sm text-gray-400">
+            Minimum seconds a visitor must stay away (after opening the winner link) before the submit fields unlock.
+            Current: <span id="min-view-seconds-display" class="text-red-400 font-semibold">{{ (int) ($minViewSeconds ?? 5) }}</span> s
+          </p>
+        </div>
+        <div class="flex flex-wrap items-end gap-3">
+          <div>
+            <label for="min-view-seconds-input" class="block text-xs font-medium text-gray-500 mb-1">Seconds</label>
+            <input type="number" id="min-view-seconds-input" min="1" max="3600" step="1"
+              value="{{ (int) ($minViewSeconds ?? 5) }}"
+              class="w-28 bg-[#0f0f0f] text-white text-sm rounded-lg border border-[#3a3a3a] focus:border-red-500 outline-none py-2.5 px-3">
+          </div>
+          <button type="button" onclick="saveMinViewSeconds()"
+            class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-bold rounded-xl text-white bg-red-600 hover:bg-red-700 transition-colors">
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fallback “Past Day Winner” links (when no winner row for that chance) -->
+    <div class="bg-[#181818] rounded-2xl border border-[#2a2a2a] p-6 shadow-sm">
+      <div class="mb-4">
+        <h2 class="text-lg font-bold text-white">Fallback winner links (6 chances)</h2>
+        <p class="mt-1 text-sm text-gray-400">
+          Used on the home page when there is no past-day winner for that chance. Each chance can have its own URL.
+        </p>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        @foreach(range(1, 6) as $c)
+          <div>
+            <label for="fallback-link-{{ $c }}" class="block text-xs font-medium text-gray-500 mb-1">Chance {{ $c }}</label>
+            <input type="url" id="fallback-link-{{ $c }}" name="fallback_link_{{ $c }}"
+              value="{{ e($fallbackWinnerLinks[$c] ?? \App\Models\UtyoubeSetting::DEFAULT_FALLBACK_YOUTUBE) }}"
+              class="block w-full bg-[#0f0f0f] text-white text-sm rounded-lg border border-[#3a3a3a] focus:border-red-500 outline-none py-2.5 px-3"
+              placeholder="https://...">
+          </div>
+        @endforeach
+      </div>
+      <div class="mt-5 flex justify-end">
+        <button type="button" onclick="saveFallbackWinnerLinks()"
+          class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-bold rounded-xl text-white bg-red-600 hover:bg-red-700 transition-colors">
+          Save fallback links
+        </button>
+      </div>
+    </div>
+
     <!-- Winners History Table -->
     <div class="bg-[#181818] rounded-2xl border border-[#2a2a2a] overflow-hidden shadow-sm">
       <div class="px-6 py-5 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-[#212121]/50 border-b border-[#2a2a2a] gap-4">
@@ -191,7 +243,7 @@
     </div>
 
     <div class="overflow-x-auto rounded-2xl rounded-b-none">
-      <table class="min-w-full divide-y divide-[#2a2a2a]">
+      <table class="min-w-full divide-y divide-[#2a2a2a] winners-table-vertical-lines">
         <thead class="bg-[#212121]/30">
           <tr>
             <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Date</th>
@@ -249,17 +301,54 @@
       });
   }
 
+  function formatDateDdMmYyyy(iso) {
+    if (!iso || typeof iso !== 'string') return '—';
+    const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return iso;
+    return `${m[3]}-${m[2]}-${m[1]}`;
+  }
+
+  function rowsWithMergedDateColumn(winners) {
+    const sorted = [...winners].sort((a, b) => {
+      const cmp = String(b.winner_date || '').localeCompare(String(a.winner_date || ''));
+      if (cmp !== 0) return cmp;
+      return (a.chance_number || 0) - (b.chance_number || 0);
+    });
+    const out = [];
+    let i = 0;
+    while (i < sorted.length) {
+      const d = sorted[i].winner_date || '';
+      let j = i + 1;
+      while (j < sorted.length && (sorted[j].winner_date || '') === d) {
+        j++;
+      }
+      const rowspan = j - i;
+      for (let k = i; k < j; k++) {
+        out.push({
+          winner: sorted[k],
+          dateRowspan: k === i ? rowspan : 0,
+          dateLabel: k === i ? formatDateDdMmYyyy(d) : '',
+        });
+      }
+      i = j;
+    }
+    return out;
+  }
+
   function renderTable(winners) {
     const tbody = document.getElementById('winners-table-body');
     if (!winners || winners.length === 0) {
       tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-12 text-center text-gray-500 italic">No winner history records found.</td></tr>';
       return;
     }
-    tbody.innerHTML = winners.map(winner => `
+    const prepared = rowsWithMergedDateColumn(winners);
+    tbody.innerHTML = prepared.map(({ winner, dateRowspan, dateLabel }) => {
+      const dateTd = dateRowspan > 0
+        ? `<td rowspan="${dateRowspan}" class="px-6 py-5 align-middle whitespace-nowrap text-sm font-bold text-white">${escapeHtml(dateLabel)}</td>`
+        : '';
+      return `
       <tr class="hover:bg-[#212121]/50 transition-colors group">
-        <td class="px-6 py-5 whitespace-nowrap text-sm font-bold text-white">
-          ${new Date(winner.winner_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' })}
-        </td>
+        ${dateTd}
         <td class="px-6 py-5 whitespace-nowrap text-sm">
           <div class="flex items-center space-x-3">
             <a href="${escapeHtml(winner.youtube_link)}" target="_blank" class="text-red-500 hover:text-red-400 hover:underline transition-color truncate max-w-xs block font-medium">
@@ -289,7 +378,8 @@
           </div>
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
   }
 
   function renderPagination(total, limit, page) {
@@ -361,6 +451,65 @@
     const val = prompt("Enter new Total Visitors count:", current);
     if (val !== null && val !== "" && !isNaN(val)) {
       updateStat('update_total_visitors', {total: val}, 'total-visitors-display', formatNumber(val));
+    }
+  }
+
+  async function saveMinViewSeconds() {
+    const input = document.getElementById('min-view-seconds-input');
+    const seconds = parseInt(input.value, 10);
+    if (Number.isNaN(seconds) || seconds < 1 || seconds > 3600) {
+      alert('Enter a whole number between 1 and 3600 seconds.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('action', 'update_min_view_seconds');
+    formData.append('seconds', String(seconds));
+    formData.append('_token', document.querySelector('meta[name=csrf-token]').content);
+
+    try {
+      const result = await postAdminAjax(formData);
+      if (result.success) {
+        const saved = typeof result.seconds !== 'undefined' ? result.seconds : seconds;
+        const display = document.getElementById('min-view-seconds-display');
+        if (display) display.textContent = saved;
+        input.value = saved;
+      } else {
+        alert('Error: ' + (result.message || 'Could not save.'));
+      }
+    } catch (error) {
+      alert(error.message || 'An unexpected error occurred.');
+    }
+  }
+
+  async function saveFallbackWinnerLinks() {
+    const formData = new FormData();
+    formData.append('action', 'update_fallback_winner_links');
+    formData.append('_token', document.querySelector('meta[name=csrf-token]').content);
+    for (let c = 1; c <= 6; c++) {
+      const el = document.getElementById('fallback-link-' + c);
+      formData.append('fallback_link_' + c, el ? el.value.trim() : '');
+    }
+
+    try {
+      const result = await postAdminAjax(formData);
+      if (result.success && result.links) {
+        for (let c = 1; c <= 6; c++) {
+          const el = document.getElementById('fallback-link-' + c);
+          const url = result.links[c] ?? result.links[String(c)];
+          if (el && url) el.value = url;
+        }
+        alert('Fallback links saved.');
+      } else {
+        alert('Error: ' + (result.message || 'Could not save.'));
+      }
+    } catch (error) {
+      if (error?.type === 'validation' && error.errors) {
+        const first = Object.values(error.errors).flat()[0];
+        alert(first || error.message || 'Validation failed.');
+        return;
+      }
+      alert(error.message || 'An unexpected error occurred.');
     }
   }
 

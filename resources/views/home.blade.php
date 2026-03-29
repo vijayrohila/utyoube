@@ -74,12 +74,15 @@
       @php
         $chances = [1, 2, 3, 4, 5, 6];
         $winnersMap = $winners ?? [];
+        $fallbackLinks = $fallbackWinnerLinks ?? [];
       @endphp
 
       @foreach($chances as $chance)
       @php
         $chanceWinner = $winnersMap[$chance] ?? null;
-        $chanceLink = $chanceWinner ? $chanceWinner['youtube_link'] : 'https://www.youtube.com';
+        $chanceLink = $chanceWinner
+          ? $chanceWinner['youtube_link']
+          : ($fallbackLinks[$chance] ?? 'https://www.youtube.com');
         $chanceClicks = $chanceWinner ? $chanceWinner['clicks'] : 0;
         $chanceWinnerId = $chanceWinner ? $chanceWinner['id'] : '';
       @endphp
@@ -157,7 +160,7 @@
 
     <!-- Table -->
     <div class="overflow-x-auto max-w-6xl mx-auto utyoube-card">
-      <table id="winnerTable" class="w-full text-center">
+      <table id="winnerTable" class="w-full text-center winners-table-vertical-lines">
         <thead class="bg-[#202020] border-b border-gray-700">
           <tr>
             <th class="px-3 py-3">Date</th>
@@ -187,8 +190,17 @@
 
 @section('scripts')
 <script>
-  const WAIT_TIME = {{ ($minViewSeconds ?? 5) * 1000 }};
+  let waitTimeMs = {{ ($minViewSeconds ?? 5) * 1000 }};
   const STORAGE_KEY = 'utyoubeChanceAccess';
+
+  function requiredWaitMs(access) {
+    const ms = access && access.waitMs != null ? Number(access.waitMs) : waitTimeMs;
+    return Number.isFinite(ms) && ms > 0 ? ms : waitTimeMs;
+  }
+
+  function requiredWaitSeconds(access) {
+    return Math.round(requiredWaitMs(access) / 1000);
+  }
 
   function getChanceStore() {
     try {
@@ -228,6 +240,15 @@
     document.getElementById(`utyoubeSubmit${chance}`).disabled = false;
   }
 
+  function hideFields(chance) {
+    const fields = document.getElementById(`utyoubeFields${chance}`);
+    if (!fields) return;
+    fields.classList.remove('visible-fields');
+    fields.classList.add('hidden-fields');
+    document.getElementById(`utyoubeInput${chance}`).disabled = true;
+    document.getElementById(`utyoubeSubmit${chance}`).disabled = true;
+  }
+
   function isValidYoutubeUrl(url) {
     const pattern = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
     return pattern.test(url);
@@ -239,6 +260,47 @@
       el.textContent = clicks;
     }
   }
+
+  function canChanceSubmit(access) {
+    if (!access || !access.token || !access.availableAt || !access.leftAtMs) return false;
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const awayTimeMs = Date.now() - Number(access.leftAtMs || 0);
+    const waitedEnough = awayTimeMs >= requiredWaitMs(access);
+    const serverWindowOpen = nowSeconds >= Number(access.availableAt || 0);
+    return waitedEnough && serverWindowOpen;
+  }
+
+  function evaluateChanceOnReturn(chance) {
+    if (!chance) return;
+    const access = getChanceAccess(chance);
+    if (!access) return;
+
+    if (!access.token) {
+      clearChanceAccess(chance);
+      hideFields(chance);
+      return;
+    }
+
+    const returnedAtMs = Date.now();
+    const leftAtMs = Number(access.leftAtMs || 0);
+    const timeAwayMs = returnedAtMs - leftAtMs;
+    if (timeAwayMs < requiredWaitMs(access)) {
+      clearChanceAccess(chance);
+      hideFields(chance);
+      return;
+    }
+
+    if (canChanceSubmit(access)) {
+      setChanceAccess(chance, { ...access, canSubmit: true });
+      showFields(chance);
+    } else {
+      clearChanceAccess(chance);
+      hideFields(chance);
+      return;
+    }
+  }
+
+  const CHANCES = [1, 2, 3, 4, 5, 6];
 
   function updateClicks(chance) {
     const btn = document.getElementById(`utyoubeBtn${chance}`);
@@ -258,18 +320,6 @@
       });
   }
 
-  function checkReturnFromRedirect(chance) {
-    const access = getChanceAccess(chance);
-    if (!access || !access.availableAt) return;
-
-    const remaining = access.availableAt - Math.floor(Date.now() / 1000);
-    if (remaining <= 0) {
-      showFields(chance);
-    } else {
-      setTimeout(() => checkReturnFromRedirect(chance), remaining * 1000);
-    }
-  }
-
   @foreach([1,2,3,4,5,6] as $chance)
   (function() {
     const chance = {{ $chance }};
@@ -278,30 +328,54 @@
     const input = document.getElementById('utyoubeInput{{ $chance }}');
 
     const existingAccess = getChanceAccess(chance);
-    if (existingAccess && existingAccess.availableAt) {
-      checkReturnFromRedirect(chance);
+    if (existingAccess && canChanceSubmit(existingAccess)) {
+      setChanceAccess(chance, { ...existingAccess, canSubmit: true });
+      showFields(chance);
+    } else {
+      if (existingAccess) {
+        if (!existingAccess.token) {
+          clearChanceAccess(chance);
+        } else {
+          setChanceAccess(chance, { ...existingAccess, canSubmit: false });
+        }
+      }
+      hideFields(chance);
     }
 
     if (btn) {
       btn.addEventListener('click', async e => {
         e.preventDefault();
 
+        const clickedAtMs = Date.now();
+        setChanceAccess(chance, {
+          leftAtMs: clickedAtMs,
+          token: null,
+          availableAt: null,
+          canSubmit: false,
+        });
+        hideFields(chance);
+
+        window.open(btn.href, '_blank', 'noopener,noreferrer');
+
         try {
           const data = await updateClicks(chance);
 
           if (data.success && data.token && data.available_at) {
+            if (typeof data.min_view_seconds === 'number' && data.min_view_seconds > 0) {
+              waitTimeMs = data.min_view_seconds * 1000;
+            }
+            const current = getChanceAccess(chance) || {};
             setChanceAccess(chance, {
+              ...current,
               token: data.token,
               availableAt: data.available_at,
+              waitMs: waitTimeMs,
+              canSubmit: false,
             });
           }
-
-          setTimeout(() => checkReturnFromRedirect(chance), WAIT_TIME);
         } catch (error) {
           console.error('Click tracking error:', error);
         }
-
-        window.open(btn.href, '_blank');
       });
     }
 
@@ -310,8 +384,20 @@
         const link = input.value.trim();
         const access = getChanceAccess(chance);
 
-        if (!access || !access.token) { alert('Click on Past Day Winner first to unlock this chance.'); return; }
-        if (Math.floor(Date.now() / 1000) < access.availableAt) { alert('Please spend at least {{ $minViewSeconds ?? 5 }} seconds on the Past Day Winner video before submitting.'); return; }
+        if (!access || !access.token) {
+          clearChanceAccess(chance);
+          hideFields(chance);
+          alert('Click on Past Day Winner first to unlock this chance.');
+          return;
+        }
+        if (!canChanceSubmit(access) || !access.canSubmit) {
+          alert('Please spend at least ' + requiredWaitSeconds(access) + ' seconds on the Past Day Winner video before submitting.');
+          return;
+        }
+        if (Math.floor(Date.now() / 1000) < access.availableAt) {
+          alert('Please spend at least ' + requiredWaitSeconds(access) + ' seconds on the Past Day Winner video before submitting.');
+          return;
+        }
         if (!link) { alert('Paste your YouTube link before submitting.'); return; }
         if (!isValidYoutubeUrl(link)) { alert('Please enter a valid YouTube link.'); return; }
 
@@ -332,6 +418,8 @@
                 location.reload();
               }, 1000);
             } else {
+              clearChanceAccess(chance);
+              hideFields(chance);
               alert(data.error || 'Something went wrong.');
             }
           })
@@ -341,11 +429,16 @@
   })();
   @endforeach
 
-  window.addEventListener('focus', () => {
-    [1, 2, 3, 4, 5, 6].forEach(checkReturnFromRedirect);
-  });
-  window.addEventListener('load', () => {
-    [1, 2, 3, 4, 5, 6].forEach(checkReturnFromRedirect);
+  function handleReturnToPage() {
+    CHANCES.forEach(chance => evaluateChanceOnReturn(chance));
+  }
+
+  //window.addEventListener('focus', handleReturnToPage);
+  //window.addEventListener('pageshow', handleReturnToPage);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      handleReturnToPage();
+    }
   });
 
   /* ===============================
@@ -383,6 +476,42 @@
       if (num >= 1000000) return (num / 1000000).toFixed(2).replace(/\.00$/, '') + 'M';
       if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
       return num;
+    }
+
+    /** YYYY-MM-DD → DD-MM-YYYY (plain text; escape when inserting into HTML) */
+    function formatDateDdMmYyyy(iso) {
+      if (!iso || typeof iso !== 'string') return '—';
+      const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (!m) return iso;
+      return `${m[3]}-${m[2]}-${m[1]}`;
+    }
+
+    /** Same date → one rowspan on Date only; rest of columns stay per row. */
+    function rowsWithMergedDateColumn(rows) {
+      const sorted = [...rows].sort((a, b) => {
+        const cmp = String(b.winner_date || '').localeCompare(String(a.winner_date || ''));
+        if (cmp !== 0) return cmp;
+        return (a.chance_number || 0) - (b.chance_number || 0);
+      });
+      const out = [];
+      let i = 0;
+      while (i < sorted.length) {
+        const d = sorted[i].winner_date || '';
+        let j = i + 1;
+        while (j < sorted.length && (sorted[j].winner_date || '') === d) {
+          j++;
+        }
+        const rowspan = j - i;
+        for (let k = i; k < j; k++) {
+          out.push({
+            row: sorted[k],
+            dateRowspan: k === i ? rowspan : 0,
+            dateLabel: k === i ? formatDateDdMmYyyy(d) : '',
+          });
+        }
+        i = j;
+      }
+      return out;
     }
 
     function escapeHtml(str) {
@@ -444,11 +573,15 @@
         paginationDiv.innerHTML = '';
         return;
       }
-      data.forEach(row => {
+
+      const prepared = rowsWithMergedDateColumn(data);
+      prepared.forEach(({ row, dateRowspan, dateLabel }) => {
         const tr = document.createElement('tr');
         tr.className = 'border-b border-gray-700 hover:bg-[#202020] transition-colors';
-        tr.innerHTML = `
-          <td class="px-3 py-4 text-gray-300 text-xs sm:text-base whitespace-nowrap">${escapeHtml(row.winner_date)}</td>
+        const dateTd = dateRowspan > 0
+          ? `<td rowspan="${dateRowspan}" class="px-3 py-4 align-middle text-gray-300 text-xs sm:text-base whitespace-nowrap">${escapeHtml(dateLabel)}</td>`
+          : '';
+        tr.innerHTML = dateTd + `
           <td class="px-3 py-4 font-semibold text-gray-200 text-xs sm:text-base">${formatKM(row.total_submissions)}</td>
           <td class="px-3 py-4">
             <a href="${escapeHtml(row.youtube_link)}" target="_blank" data-winner-link-id="${row.id}"

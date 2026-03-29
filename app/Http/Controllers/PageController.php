@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\UtyoubeSetting;
 use App\Models\UtyoubeStatistic;
 use App\Models\UtyoubeSubmission;
 use App\Models\UtyoubeWinner;
@@ -12,7 +13,6 @@ use Illuminate\Http\Request;
 
 class PageController extends Controller
 {
-    private const MIN_VIEW_SECONDS = 5;
     private const UNLOCK_TTL_SECONDS = 600;
 
     public function __construct(private UtyoubeDataStore $store)
@@ -26,7 +26,8 @@ class PageController extends Controller
         return view('home', [
             'stats' => $stats,
             'winners' => UtyoubeWinner::todaysWinnersByChance(),
-            'minViewSeconds' => self::MIN_VIEW_SECONDS,
+            'minViewSeconds' => UtyoubeSetting::getMinViewSeconds(),
+            'fallbackWinnerLinks' => UtyoubeSetting::getFallbackWinnerLinks(),
         ]);
     }
 
@@ -75,12 +76,13 @@ class PageController extends Controller
         $clicks = UtyoubeWinner::incrementClicks($winnerId);
         $this->store->incrementWinnerClicks();
 
+        $minViewSeconds = UtyoubeSetting::getMinViewSeconds();
         $token = bin2hex(random_bytes(20));
         $now = Carbon::now();
 
         $chanceState['unlocked'][$chance] = [
             'token' => $token,
-            'available_at' => $now->copy()->addSeconds(self::MIN_VIEW_SECONDS)->timestamp,
+            'available_at' => $now->copy()->addSeconds($minViewSeconds)->timestamp,
             'expires_at' => $now->copy()->addSeconds(self::UNLOCK_TTL_SECONDS)->timestamp,
         ];
 
@@ -92,7 +94,7 @@ class PageController extends Controller
             'chance' => $chance,
             'token' => $token,
             'available_at' => $chanceState['unlocked'][$chance]['available_at'],
-            'min_view_seconds' => self::MIN_VIEW_SECONDS,
+            'min_view_seconds' => $minViewSeconds,
         ]);
     }
 
@@ -132,9 +134,11 @@ class PageController extends Controller
 
         $nowTimestamp = Carbon::now()->timestamp;
         if ($nowTimestamp < (int) ($unlock['available_at'] ?? 0)) {
+            $min = UtyoubeSetting::getMinViewSeconds();
+
             return response()->json([
                 'success' => false,
-                'error' => 'Please spend at least 5 seconds on the Past Day Winner video before submitting.',
+                'error' => "Please spend at least {$min} seconds on the Past Day Winner video before submitting.",
             ], 422);
         }
 

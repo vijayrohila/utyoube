@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\UtyoubeSetting;
 use App\Models\UtyoubeStatistic;
 use App\Models\UtyoubeWinner;
 use App\Support\UtyoubeDataStore;
@@ -56,6 +57,8 @@ class AdminController extends Controller
                 'today' => (int) $stats['today'],
                 'total' => (int) $stats['total'],
             ],
+            'minViewSeconds' => UtyoubeSetting::getMinViewSeconds(),
+            'fallbackWinnerLinks' => UtyoubeSetting::getFallbackWinnerLinks(),
         ]);
     }
 
@@ -116,6 +119,36 @@ class AdminController extends Controller
                 UtyoubeStatistic::whereDate('stats_date', today())
                     ->update(['total_visitors' => (int) $request->input('total')]);
                 return response()->json(['success' => true]);
+            }
+
+            if ($action === 'update_min_view_seconds') {
+                $request->validate([
+                    'seconds' => ['required', 'integer', 'min:1', 'max:3600'],
+                ]);
+                UtyoubeSetting::setMinViewSeconds((int) $request->input('seconds'));
+
+                return response()->json([
+                    'success' => true,
+                    'seconds' => UtyoubeSetting::getMinViewSeconds(),
+                ]);
+            }
+
+            if ($action === 'update_fallback_winner_links') {
+                $rules = [];
+                foreach (range(1, 6) as $c) {
+                    $rules['fallback_link_' . $c] = ['required', 'string', 'url', 'max:2000'];
+                }
+                $validated = $request->validate($rules);
+                $byChance = [];
+                foreach (range(1, 6) as $c) {
+                    $byChance[$c] = (string) $validated['fallback_link_' . $c];
+                }
+                UtyoubeSetting::setFallbackWinnerLinks($byChance);
+
+                return response()->json([
+                    'success' => true,
+                    'links' => UtyoubeSetting::getFallbackWinnerLinks(),
+                ]);
             }
 
             // ── Update an existing winner row ───────────────────────────
