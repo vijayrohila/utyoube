@@ -5,6 +5,8 @@
 *.html diff=html
 *.md diff=markdown
 *.php diff=php
+node_modules
+vendor
 
 /.github export-ignore
 CHANGELOG.md export-ignore
