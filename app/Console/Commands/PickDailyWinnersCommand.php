@@ -7,6 +7,7 @@ use App\Models\UtyoubeWinner;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PickDailyWinnersCommand extends Command
 {
@@ -22,8 +23,17 @@ class PickDailyWinnersCommand extends Command
         $sourceDate = $this->resolveDateOption('source-date', Carbon::yesterday());
         $winnerDate = $this->resolveDateOption('winner-date', Carbon::today());
         $isDryRun = (bool) $this->option('dry-run');
+        $startedAt = now();
+
+        Log::info('Cron hit: utyoube:pick-daily-winners started', [
+            'source_date' => $sourceDate?->toDateString(),
+            'winner_date' => $winnerDate?->toDateString(),
+            'dry_run' => $isDryRun,
+            'started_at' => $startedAt->toDateTimeString(),
+        ]);
 
         if (!$sourceDate || !$winnerDate) {
+            Log::warning('Cron hit: utyoube:pick-daily-winners aborted due to invalid date options');
             return self::INVALID;
         }
 
@@ -106,6 +116,16 @@ class PickDailyWinnersCommand extends Command
         $this->line('Created winners: ' . $created);
         $this->line('Skipped (already exists): ' . $skippedExisting);
         $this->line('Skipped (no submissions): ' . $skippedNoSubmissions);
+
+        Log::info('Cron hit: utyoube:pick-daily-winners completed', [
+            'source_date' => $sourceDate->toDateString(),
+            'winner_date' => $winnerDate->toDateString(),
+            'dry_run' => $isDryRun,
+            'created_winners' => $created,
+            'skipped_existing' => $skippedExisting,
+            'skipped_no_submissions' => $skippedNoSubmissions,
+            'finished_at' => now()->toDateTimeString(),
+        ]);
 
         return self::SUCCESS;
     }

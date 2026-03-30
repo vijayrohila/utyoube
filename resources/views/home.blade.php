@@ -660,7 +660,7 @@
           <td class="px-3 py-4">
             <a href="${escapeHtml(row.youtube_link)}" target="_blank" data-winner-link-id="${row.id}"
                class="text-green-500 hover:text-red-500 hover:underline font-semibold text-xs sm:text-base truncate max-w-[150px] sm:max-w-xs block">
-               Winner Link
+               Winner Link ${row.chance_number}
             </a>
           </td>
           <td class="px-3 py-4 font-semibold text-red-500 text-xs sm:text-base"><span id="winnerTableClicks${row.id}" data-clicks="${row.clicks}">${formatKM(row.clicks)}</span></td>

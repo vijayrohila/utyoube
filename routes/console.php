@@ -8,4 +8,4 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command('utyoube:pick-daily-winners')->dailyAt('00:05');
+Schedule::command('utyoube:pick-daily-winners');
