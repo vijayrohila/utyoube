@@ -169,7 +169,6 @@
           <tr>
             <th class="px-3 py-3">Date</th>
             <th class="px-3 py-3">Total links</th>
-            <th class="px-3 py-3">Submissions</th>
             <th class="px-3 py-3">Winners</th>
             <th class="px-3 py-3">Winner Profit by Visits</th>
           </tr>
@@ -656,7 +655,6 @@
           : '';
         tr.innerHTML = dateTd + `
           <td class="px-3 py-4 font-semibold text-gray-200 text-xs sm:text-base">${formatKM(row.total_links != null ? row.total_links : 0)}</td>
-          <td class="px-3 py-4 font-semibold text-gray-200 text-xs sm:text-base">${formatKM(row.total_submissions)}</td>
           <td class="px-3 py-4">
             <a href="${escapeHtml(row.youtube_link)}" target="_blank" data-winner-link-id="${row.id}"
                class="text-green-500 hover:text-red-500 hover:underline font-semibold text-xs sm:text-base truncate max-w-[150px] sm:max-w-xs block">

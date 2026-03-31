@@ -255,7 +255,7 @@
             <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Date</th>
             <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">YouTube Link</th>
             <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Total links</th>
-            <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Submissions</th>
+            <!-- <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Submissions</th> -->
             <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Clicks</th>
           </tr>
         </thead>
@@ -374,14 +374,7 @@
             </button>
           </div>
         </td>
-        <td class="px-6 py-5 whitespace-nowrap text-sm text-center">
-          <div class="flex items-center justify-center space-x-2">
-            <span class="text-white font-medium">${formatNumber(winner.total_submissions)}</span>
-            <button onclick="editWinnerSubmissions(${winner.id}, ${winner.total_submissions})" class="text-gray-600 hover:text-white transition-colors p-1 opacity-0 group-hover:opacity-100" title="Past Day Winner submits">
-              <i class="fa-solid fa-pen text-[10px]"></i>
-            </button>
-          </div>
-        </td>
+        
         <td class="px-6 py-5 whitespace-nowrap text-sm text-center">
           <div class="flex items-center justify-center space-x-3">
             <span id="clicks-display-${winner.id}" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-500/10 text-green-500 border border-green-500/20">

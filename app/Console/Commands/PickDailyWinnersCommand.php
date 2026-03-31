@@ -16,12 +16,13 @@ class PickDailyWinnersCommand extends Command
         {--winner-date= : Winner date to write to (Y-m-d). Defaults to today}
         {--dry-run : Show what would be selected without writing changes}';
 
-    protected $description = 'Pick 1 random submission per chance (1-6) from past day; set total_links to pool size, total_submissions to 0; then delete source-day submissions.';
+    protected $description = 'Pick 1 random submission per chance (1-6) from yesterday; store winners under the same winner date, then delete source-day submissions.';
 
     public function handle(): int
     {
         $sourceDate = $this->resolveDateOption('source-date', Carbon::yesterday());
-        $winnerDate = $this->resolveDateOption('winner-date', Carbon::today());
+        // For "Past Day Winner": winners correspond to the same calendar day as the source submissions.
+        $winnerDate = $this->resolveDateOption('winner-date', Carbon::yesterday());
         $isDryRun = (bool) $this->option('dry-run');
         $startedAt = now();
 
@@ -39,7 +40,7 @@ class PickDailyWinnersCommand extends Command
 
         $this->info('Selecting random winners from submissions...');
         $this->line('Source date: ' . $sourceDate->toDateString());
-        $this->line('Winner date: ' . $winnerDate->toDateString());
+        $this->line('Winner date: ' . $sourceDate->toDateString());
         $this->line('Dry run: ' . ($isDryRun ? 'yes' : 'no'));
 
         $created = 0;
