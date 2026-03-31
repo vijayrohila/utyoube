@@ -9,5 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('utyoube:pick-daily-winners')
-    ->dailyAt('00:05')
     ->timezone('Asia/Kolkata');

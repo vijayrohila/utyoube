@@ -115,6 +115,8 @@ class UtyoubeWinner extends Model
 
         $total = (clone $query)->count();
 
+        $query->whereDate('winner_date', '<', Carbon::today()); // Only winners from before today
+
         /** @var Collection<int, self> $rows */
         $rows = $query
             ->orderByDesc('winner_date')
