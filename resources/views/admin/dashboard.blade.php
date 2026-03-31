@@ -92,7 +92,7 @@
     <div class="bg-[#181818] rounded-2xl border border-[#2a2a2a] p-6 shadow-sm">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 class="text-lg font-bold text-white">Past Day Winner wait time</h2>
+          <h2 class="text-lg font-bold text-white">Pastday Winner Video Watch Time</h2>
           <p class="mt-1 text-sm text-gray-400">
             Minimum seconds a visitor must stay away (after opening the winner link) before the submit fields unlock.
             Current: <span id="min-view-seconds-display" class="text-red-400 font-semibold">{{ (int) ($minViewSeconds ?? 5) }}</span> s
