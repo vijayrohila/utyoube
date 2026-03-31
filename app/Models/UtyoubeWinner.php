@@ -104,18 +104,35 @@ class UtyoubeWinner extends Model
         $limit = max(1, $limit);
 
         $query = self::query();
+        $query->whereDate('winner_date', '<', today()->subDay()); // Only winners from before today
 
         if ($q !== '') {
             $query->where(function ($builder) use ($q): void {
-                $builder
-                    ->where('winner_date', 'like', '%' . $q . '%')
-                    ->orWhere('youtube_link', 'like', '%' . $q . '%');
+                // Check if the search query looks like a date
+                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $q)) {
+                    // It's a YYYY-MM-DD format date
+                    $builder->whereDate('winner_date', '=', $q);
+                } 
+                elseif (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $q)) {
+                    // It's a DD/MM/YYYY format date
+                    $formattedDate = \Carbon\Carbon::createFromFormat('d/m/Y', $q)->format('Y-m-d');
+                    $builder->whereDate('winner_date', '=', $formattedDate);
+                }
+                elseif (preg_match('/^\d{2}-\d{2}-\d{4}$/', $q)) {
+                    // It's a DD-MM-YYYY format date
+                    $formattedDate = \Carbon\Carbon::createFromFormat('d-m-Y', $q)->format('Y-m-d');
+                    $builder->whereDate('winner_date', '=', $formattedDate);
+                }
+                else {
+                    // Not a date format - do normal text search
+                    $builder
+                        ->where('winner_date', 'like', '%' . $q . '%')
+                        ->orWhere('youtube_link', 'like', '%' . $q . '%');
+                }
             });
         }
 
         $total = (clone $query)->count();
-
-        $query->whereDate('winner_date', '<', Carbon::today()); // Only winners from before today
 
         /** @var Collection<int, self> $rows */
         $rows = $query
@@ -124,21 +141,26 @@ class UtyoubeWinner extends Model
             ->forPage($page, $limit)
             ->get();
 
+        $serializedRows = $rows->map(static function (self $winner): array {
+            return [
+                'id' => (int) $winner->id,
+                'winner_date' => $winner->winner_date?->toDateString() ?? '',
+                'chance_number' => (int) $winner->chance_number,
+                'youtube_link' => (string) $winner->youtube_link,
+                'total_links' => (int) $winner->total_links,
+                'total_submissions' => (int) $winner->total_submissions,
+                'clicks' => (int) $winner->clicks,
+            ];
+        });
+
         return [
             'total' => $total,
             'page' => $page,
             'limit' => $limit,
-            'data' => $rows->map(static function (self $winner): array {
-                return [
-                    'id' => (int) $winner->id,
-                    'winner_date' => $winner->winner_date?->toDateString() ?? '',
-                    'chance_number' => (int) $winner->chance_number,
-                    'youtube_link' => (string) $winner->youtube_link,
-                    'total_links' => (int) $winner->total_links,
-                    'total_submissions' => (int) $winner->total_submissions,
-                    'clicks' => (int) $winner->clicks,
-                ];
-            })->values()->all(),
+            'data' => $serializedRows
+                ->groupBy('winner_date')
+                ->map(static fn (Collection $group): array => $group->values()->all())
+                ->all(),
         ];
     }
 }

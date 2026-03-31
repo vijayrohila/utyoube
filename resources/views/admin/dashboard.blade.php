@@ -281,6 +281,18 @@
     fetchWinners(currentPage, currentLimit, currentSearch);
   });
 
+  function flattenGroupedWinnerData(data) {
+    if (Array.isArray(data)) return data;
+    if (!data || typeof data !== 'object') return [];
+    return Object.keys(data).flatMap((dateKey) => {
+      const rows = Array.isArray(data[dateKey]) ? data[dateKey] : [];
+      return rows.map((row) => ({
+        ...row,
+        winner_date: row.winner_date || dateKey,
+      }));
+    });
+  }
+
   function fetchWinners(page = 1, limit = 10, search = '') {
     currentPage = page;
     currentLimit = limit;
@@ -294,7 +306,7 @@
     fetch(url)
       .then(res => res.json())
       .then(data => {
-        renderTable(data.data);
+        renderTable(flattenGroupedWinnerData(data.data));
         renderPagination(data.total, data.limit, data.page);
         const newUrl = new URL(window.location);
         newUrl.searchParams.set('p', page);
