@@ -318,6 +318,7 @@
     const awayTimeMs = Date.now() - Number(access.leftAtMs || 0);
     const waitedEnough = awayTimeMs >= requiredWaitMs(access);
     const serverWindowOpen = nowSeconds >= Number(access.availableAt || 0);
+    alert(waitedEnough + ' ' + serverWindowOpen);
     return waitedEnough && serverWindowOpen;
   }
 
