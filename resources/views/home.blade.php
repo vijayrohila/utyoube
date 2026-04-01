@@ -415,7 +415,7 @@
               canSubmit: false,
             });
           }
-
+          alert("ALl Set, Opening in new tab");
           window.open(btn.href, '_blank', 'noopener,noreferrer');
         } catch (error) {
           console.error('Click tracking error:', error);
