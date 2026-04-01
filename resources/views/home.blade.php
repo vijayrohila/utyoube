@@ -332,17 +332,6 @@
       return;
     }
 
-    const returnedAtMs = Date.now();
-    const leftAtMs = Number(access.leftAtMs || 0);
-    const timeAwayMs = returnedAtMs - leftAtMs;
-    if (timeAwayMs < requiredWaitMs(access)) {
-      const secs = requiredWaitSeconds(access);
-      clearChanceAccess(chance);
-      hideFields(chance);
-      showEarlyReturnSwal(secs);
-      return;
-    }
-
     if (canChanceSubmit(access)) {
       setChanceAccess(chance, { ...access, canSubmit: true });
       showFields(chance);
@@ -505,8 +494,8 @@
     CHANCES.forEach(chance => evaluateChanceOnReturn(chance));
   }
 
-  //window.addEventListener('focus', handleReturnToPage);
-  //window.addEventListener('pageshow', handleReturnToPage);
+  window.addEventListener('focus', handleReturnToPage);
+  window.addEventListener('pageshow', handleReturnToPage);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       handleReturnToPage();

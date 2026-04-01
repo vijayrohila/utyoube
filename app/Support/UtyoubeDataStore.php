@@ -66,6 +66,9 @@ class UtyoubeDataStore
         return $data['stats'];
     }
 
+    /**
+     * Winner entry for click increments: winner_date = one day before yesterday (today minus 2 days).
+     */
     public function getCurrentWinner(): ?array
     {
         $data = $this->getData();
@@ -74,15 +77,20 @@ class UtyoubeDataStore
             return null;
         }
 
-        usort($winners, static function (array $a, array $b): int {
-            $dateCmp = strcmp($b['winner_date'] ?? '', $a['winner_date'] ?? '');
-            if ($dateCmp !== 0) {
-                return $dateCmp;
-            }
+        $targetDate = Carbon::today()->subDays(2)->toDateString();
+        $matched = array_values(array_filter($winners, static function (array $w) use ($targetDate): bool {
+            return ($w['winner_date'] ?? '') === $targetDate;
+        }));
+
+        if (empty($matched)) {
+            return null;
+        }
+
+        usort($matched, static function (array $a, array $b): int {
             return (int) ($b['id'] ?? 0) <=> (int) ($a['id'] ?? 0);
         });
 
-        return $winners[0];
+        return $matched[0];
     }
 
     public function addSubmission(array|string $submission): void

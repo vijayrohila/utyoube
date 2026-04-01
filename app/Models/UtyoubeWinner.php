@@ -26,14 +26,15 @@ class UtyoubeWinner extends Model
 
     /**
      * Atomically increment the clicks counter on a specific winner by ID,
-     * falling back to today's winner if no ID is supplied.
+     * falling back to the winner row for "one day before yesterday" (two calendar days ago)
+     * when no ID is supplied.
      * Returns the new clicks value, or 0 if no matching row exists.
      */
     public static function incrementClicks(?int $id = null): int
     {
         $winner = $id
             ? self::query()->find($id)
-            : self::todaysWinner();
+            : self::winnerRowForClickFallback();
 
         if (!$winner) {
             return 0;
@@ -45,12 +46,13 @@ class UtyoubeWinner extends Model
     }
 
     /**
-     * Return today's winner row, or null if none exists for today.
+     * Latest winner row for the date one day before yesterday (winner_date = today - 2 days).
+     * Used only when incrementing clicks without a winner_id.
      */
-    public static function todaysWinner(): self|null
+    public static function winnerRowForClickFallback(): self|null
     {
         return self::query()
-        ->whereDate('winner_date', today()->subDay()) 
+            ->whereDate('winner_date', today()->subDays(2))
             ->orderByDesc('id')
             ->first();
     }
