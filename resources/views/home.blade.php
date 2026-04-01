@@ -318,7 +318,11 @@
     const awayTimeMs = Date.now() - Number(access.leftAtMs || 0);
     const waitedEnough = awayTimeMs >= requiredWaitMs(access);
     const serverWindowOpen = nowSeconds >= Number(access.availableAt || 0);
-    alert(waitedEnough + ' ' + serverWindowOpen);
+    Swal.fire({
+      title: 'Can chance submit?',
+      text: waitedEnough + ' ' + serverWindowOpen + ' ' + access.leftAtMs + ' ' + access.availableAt,
+      icon: 'info',
+    });
     return waitedEnough && serverWindowOpen;
   }
 
