@@ -622,7 +622,9 @@
             await sendWinnerTableClick(winnerId);
           }
           if (href) {
-            window.open(href, '_blank', 'noopener,noreferrer');
+            //window.open(href, '_blank', 'noopener,noreferrer');
+            // 🔥 REDIRECT IN SAME TAB (critical fix)
+            window.location.href = href;
           }
         });
       });
