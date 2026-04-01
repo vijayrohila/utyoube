@@ -271,6 +271,13 @@
     setChanceStore(store);
   }
 
+  function isMobileDevice() {
+    return (
+      /Android|iPhone|iPad|iPod|Mobile|Opera Mini/i.test(navigator.userAgent) ||
+      (navigator.maxTouchPoints && navigator.maxTouchPoints > 2 && window.innerWidth < 1024)
+    );
+  }
+
   function clearChanceAccess(chance) {
     const store = getChanceStore();
     delete store[chance];
@@ -412,12 +419,16 @@
               canSubmit: false,
             });
           }      
-          window.location.href = btn.href;    
         } catch (error) {
           console.error('Click tracking error:', error);
         }
-        //window.open(btn.href, '_blank', 'noopener,noreferrer');
-        
+        if (isMobileDevice()) {
+            // Mobile → same tab (REQUIRED for timer)
+            window.location.href = btn.href;
+        } else {
+            // Desktop → new tab (better UX)
+            window.open(btn.href, '_blank', 'noopener,noreferrer');
+        }        
       });
     }
 
@@ -626,7 +637,13 @@
           if (href) {
             //window.open(href, '_blank', 'noopener,noreferrer');
             // 🔥 REDIRECT IN SAME TAB (critical fix)
-            window.location.href = href;
+            if (isMobileDevice()) {
+                // Mobile → same tab (REQUIRED for timer)
+                window.location.href = href;
+            } else {
+                // Desktop → new tab (better UX)
+                window.open(href, '_blank', 'noopener,noreferrer');
+            }
           }
         });
       });
