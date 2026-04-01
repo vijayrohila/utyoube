@@ -50,7 +50,7 @@ class UtyoubeWinner extends Model
     public static function todaysWinner(): self|null
     {
         return self::query()
-            ->whereDate('winner_date', today())
+        ->whereDate('winner_date', today()->subDay()) 
             ->orderByDesc('id')
             ->first();
     }
@@ -60,7 +60,7 @@ class UtyoubeWinner extends Model
      */
     public static function displayedWinnerDate(): Carbon
     {
-        return today();
+        return today()->subDay();
     }
 
     /**
