@@ -411,11 +411,13 @@
               waitMs: waitTimeMs,
               canSubmit: false,
             });
-          }
-          window.open(btn.href, '_blank', 'noopener,noreferrer');
+          }      
+          window.location.href = btn.href;    
         } catch (error) {
           console.error('Click tracking error:', error);
         }
+        //window.open(btn.href, '_blank', 'noopener,noreferrer');
+        
       });
     }
 
