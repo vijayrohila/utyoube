@@ -346,7 +346,7 @@
 
   const CHANCES = [1, 2, 3, 4, 5, 6];
 
-  function updateClicks(chance) {
+  async function updateClicks(chance) {
     const btn = document.getElementById(`utyoubeBtn${chance}`);
     const winnerId = btn ? (btn.dataset.winnerId || '') : '';
     const formData = new FormData();
@@ -354,14 +354,12 @@
     formData.append('chance', chance);
     formData.append('winner_id', winnerId);
     formData.append('_token', document.querySelector('meta[name=csrf-token]').content);
-    return fetch('{{ url("/api/click") }}', { method: 'POST', body: formData })
-      .then(r => r.json())
-      .then(data => {
-        if (typeof data.clicks !== 'undefined') {
-          setWinnerClicks(chance, data.clicks);
-        }
-        return data;
-      });
+    const response = await fetch('{{ url("/api/click") }}', { method: 'POST', body: formData });
+    const data = await response.json();
+    if (typeof data.clicks !== 'undefined') {
+      setWinnerClicks(chance, data.clicks);
+    }
+    return data;
   }
 
   @foreach([1,2,3,4,5,6] as $chance)
@@ -401,7 +399,6 @@
 
         try {
           const data = await updateClicks(chance);
-
           if (data.success && data.token && data.available_at) {
             if (typeof data.min_view_seconds === 'number' && data.min_view_seconds > 0) {
               waitTimeMs = data.min_view_seconds * 1000;
@@ -415,7 +412,6 @@
               canSubmit: false,
             });
           }
-          alert("ALl Set, Opening in new tab");
           window.open(btn.href, '_blank', 'noopener,noreferrer');
         } catch (error) {
           console.error('Click tracking error:', error);
@@ -424,30 +420,30 @@
     }
 
     if (submitBtn) {
-      submitBtn.addEventListener('click', () => {
+      submitBtn.addEventListener('click', async () => {
         const link = input.value.trim();
         const access = getChanceAccess(chance);
 
         if (!access || !access.token) {
           clearChanceAccess(chance);
           hideFields(chance);
-          utyoubeAlert('Unlock required', 'Click on Past Day Winner first to unlock this chance.', 'warning');
+          await utyoubeAlert('Unlock required', 'Click on Past Day Winner first to unlock this chance.', 'warning');
           return;
         }
         if (!canChanceSubmit(access) || !access.canSubmit) {
-          showEarlyReturnSwal(requiredWaitSeconds(access));
+          await showEarlyReturnSwal(requiredWaitSeconds(access));
           return;
         }
         if (Math.floor(Date.now() / 1000) < access.availableAt) {
-          showEarlyReturnSwal(requiredWaitSeconds(access));
+          await showEarlyReturnSwal(requiredWaitSeconds(access));
           return;
         }
         if (!link) {
-          utyoubeAlert('Link required', 'Paste your YouTube link before submitting.', 'warning');
+          await utyoubeAlert('Link required', 'Paste your YouTube link before submitting.', 'warning');
           return;
         }
         if (!isValidYoutubeUrl(link)) {
-          utyoubeAlert('Invalid link', 'Please enter a valid YouTube link.', 'error');
+          await utyoubeAlert('Invalid link', 'Please enter a valid YouTube link.', 'error');
           return;
         }
 
@@ -457,34 +453,34 @@
         formData.append('access_token', access.token);
         formData.append('_token', document.querySelector('meta[name=csrf-token]').content);
 
-        fetch('{{ route("submit.link") }}', { method: 'POST', body: formData })
-          .then(r => r.json())
-          .then(data => {
-            if (data.success) {
-              if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                  ...utyoubeSwalBase(),
-                  icon: 'success',
-                  title: 'Submitted',
-                  text: data.message || 'Your link was submitted.',
-                }).then(() => {
-                  clearChanceAccess(chance);
-                  input.value = '';
-                  location.reload();
-                });
-              } else {
-                window.alert(data.message);
-                clearChanceAccess(chance);
-                input.value = '';
-                location.reload();
-              }
-            } else {
+        try {
+          const response = await fetch('{{ route("submit.link") }}', { method: 'POST', body: formData });
+          const data = await response.json();
+          if (data.success) {
+            if (typeof Swal !== 'undefined') {
+              await Swal.fire({
+                ...utyoubeSwalBase(),
+                icon: 'success',
+                title: 'Submitted',
+                text: data.message || 'Your link was submitted.',
+              });
               clearChanceAccess(chance);
-              hideFields(chance);
-              utyoubeAlert('Could not submit', data.error || 'Something went wrong.', 'error');
+              input.value = '';
+              location.reload();
+            } else {
+              window.alert(data.message);
+              clearChanceAccess(chance);
+              input.value = '';
+              location.reload();
             }
-          })
-          .catch(() => utyoubeAlert('Error', 'An error occurred. Please try again.', 'error'));
+          } else {
+            clearChanceAccess(chance);
+            hideFields(chance);
+            await utyoubeAlert('Could not submit', data.error || 'Something went wrong.', 'error');
+          }
+        } catch (e) {
+          await utyoubeAlert('Error', 'An error occurred. Please try again.', 'error');
+        }
       });
     }
   })();
@@ -593,21 +589,26 @@
       return div.innerHTML;
     }
 
-    function sendWinnerTableClick(winnerId) {
+    async function sendWinnerTableClick(winnerId) {
       const formData = new FormData();
       formData.append('winner_id', winnerId);
       formData.append('_token', document.querySelector('meta[name=csrf-token]').content);
-
-      fetch('{{ route("api.winner-click") }}', {
-        method: 'POST',
-        body: formData,
-        keepalive: true,
-      }).catch(error => console.error('Winner table click error:', error));
+      try {
+        await fetch('{{ route("api.winner-click") }}', {
+          method: 'POST',
+          body: formData,
+          keepalive: true,
+        });
+      } catch (error) {
+        console.error('Winner table click error:', error);
+      }
     }
 
     function attachWinnerLinkClickHandlers() {
       tableBody.querySelectorAll('[data-winner-link-id]').forEach(link => {
-        link.addEventListener('click', () => {
+        link.addEventListener('click', async (e) => {
+          e.preventDefault();
+          const href = link.getAttribute('href') || '';
           const winnerId = parseInt(link.dataset.winnerLinkId, 10);
           const clicksEl = document.getElementById(`winnerTableClicks${winnerId}`);
 
@@ -618,7 +619,10 @@
           }
 
           if (!Number.isNaN(winnerId)) {
-            sendWinnerTableClick(winnerId);
+            await sendWinnerTableClick(winnerId);
+          }
+          if (href) {
+            window.open(href, '_blank', 'noopener,noreferrer');
           }
         });
       });
@@ -679,7 +683,7 @@
       prevBtn.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
       prevBtn.disabled = currentPage === 1;
       prevBtn.className = 'px-3 py-1 border border-gray-700 rounded text-gray-300 disabled:opacity-30 hover:bg-gray-700 transition-colors';
-      prevBtn.onclick = () => { if (currentPage > 1) { currentPage--; fetchWinners(); } };
+      prevBtn.onclick = async () => { if (currentPage > 1) { currentPage--; await fetchWinners(); } };
       paginationDiv.appendChild(prevBtn);
 
       for (let i = Math.max(1, currentPage - 1); i <= Math.min(totalPages, currentPage + 1); i++) {
@@ -687,7 +691,7 @@
         btn.textContent = i;
         btn.className = 'px-3 py-1 border border-gray-700 rounded text-gray-300 hover:bg-gray-700 transition-colors' + (i === currentPage ? ' active-page' : '');
         const page = i;
-        btn.onclick = () => { currentPage = page; fetchWinners(); };
+        btn.onclick = async () => { currentPage = page; await fetchWinners(); };
         paginationDiv.appendChild(btn);
       }
 
@@ -695,17 +699,25 @@
       nextBtn.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
       nextBtn.disabled = currentPage === totalPages;
       nextBtn.className = 'px-3 py-1 border border-gray-700 rounded text-gray-300 disabled:opacity-30 hover:bg-gray-700 transition-colors';
-      nextBtn.onclick = () => { if (currentPage < totalPages) { currentPage++; fetchWinners(); } };
+      nextBtn.onclick = async () => { if (currentPage < totalPages) { currentPage++; await fetchWinners(); } };
       paginationDiv.appendChild(nextBtn);
     }
 
-    perPageSelect.addEventListener('change', () => { perPage = parseInt(perPageSelect.value); currentPage = 1; fetchWinners(); });
+    perPageSelect.addEventListener('change', async () => {
+      perPage = parseInt(perPageSelect.value, 10);
+      currentPage = 1;
+      await fetchWinners();
+    });
     searchInput.addEventListener('input', () => {
       clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(() => { currentSearch = searchInput.value.trim(); currentPage = 1; fetchWinners(); }, 400);
+      searchTimeout = setTimeout(async () => {
+        currentSearch = searchInput.value.trim();
+        currentPage = 1;
+        await fetchWinners();
+      }, 400);
     });
 
-    fetchWinners();
+    void fetchWinners();
   })();
 </script>
 @endsection
