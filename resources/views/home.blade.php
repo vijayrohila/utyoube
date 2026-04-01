@@ -318,11 +318,6 @@
     const awayTimeMs = Date.now() - Number(access.leftAtMs || 0);
     const waitedEnough = awayTimeMs >= requiredWaitMs(access);
     const serverWindowOpen = nowSeconds >= Number(access.availableAt || 0);
-    Swal.fire({
-      title: 'Can chance submit?',
-      text: waitedEnough + ' ' + serverWindowOpen + ' ' + access.leftAtMs + ' ' + access.availableAt,
-      icon: 'info',
-    });
     return waitedEnough && serverWindowOpen;
   }
 
@@ -404,8 +399,6 @@
         });
         hideFields(chance);
 
-        window.open(btn.href, '_blank', 'noopener,noreferrer');
-
         try {
           const data = await updateClicks(chance);
 
@@ -422,6 +415,8 @@
               canSubmit: false,
             });
           }
+
+          window.open(btn.href, '_blank', 'noopener,noreferrer');
         } catch (error) {
           console.error('Click tracking error:', error);
         }
