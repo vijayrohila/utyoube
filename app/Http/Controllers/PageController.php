@@ -73,9 +73,7 @@ class PageController extends Controller
         $chance = (int) $request->input('chance');
         $chanceState = $this->getChanceState($request);
 
-        $winnerId = $request->input('winner_id') ? (int) $request->input('winner_id') : null;
-        $clicks = UtyoubeWinner::incrementClicks($winnerId);
-        $this->store->incrementWinnerClicks();
+        $winnerId = $request->filled('winner_id') ? (int) $request->input('winner_id') : null;
 
         $minViewSeconds = UtyoubeSetting::getMinViewSeconds();
         $token = bin2hex(random_bytes(20));
@@ -89,14 +87,20 @@ class PageController extends Controller
 
         $this->putChanceState($request, $chanceState);
 
-        return response()->json([
+        $payload = [
             'success' => true,
-            'clicks' => $clicks,
             'chance' => $chance,
             'token' => $token,
             'available_at' => $chanceState['unlocked'][$chance]['available_at'],
             'min_view_seconds' => $minViewSeconds,
-        ]);
+        ];
+
+        if ($winnerId !== null && $winnerId >= 1) {
+            $payload['clicks'] = UtyoubeWinner::incrementClicks($winnerId);
+            $this->store->incrementWinnerClicks();
+        }
+
+        return response()->json($payload);
     }
 
     public function winnerClick(Request $request): JsonResponse
