@@ -77,7 +77,7 @@ class UtyoubeDataStore
             return null;
         }
 
-        $targetDate = Carbon::today()->subDays(2)->toDateString();
+        $targetDate = Carbon::today()->subDays(1)->toDateString();
         $matched = array_values(array_filter($winners, static function (array $w) use ($targetDate): bool {
             return ($w['winner_date'] ?? '') === $targetDate;
         }));
