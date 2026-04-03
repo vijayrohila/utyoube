@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\UtyoubeSetting;
 use App\Models\UtyoubeSubmission;
 use App\Models\UtyoubeWinner;
 use Carbon\Carbon;
@@ -16,7 +17,7 @@ class PickDailyWinnersCommand extends Command
         {--winner-date= : Winner date to write to (Y-m-d). Defaults to today}
         {--dry-run : Show what would be selected without writing changes}';
 
-    protected $description = 'Pick 1 random submission per chance (1-6) from yesterday; store winners under the same winner date, then delete source-day submissions.';
+    protected $description = 'Pick 1 random submission per chance (1-6) from source date; if none, use admin fallback winner links; then delete leftover source-day submissions.';
 
     public function handle(): int
     {
@@ -40,12 +41,13 @@ class PickDailyWinnersCommand extends Command
 
         $this->info('Selecting random winners from submissions...');
         $this->line('Source date: ' . $sourceDate->toDateString());
-        $this->line('Winner date: ' . $sourceDate->toDateString());
+        $this->line('Winner date: ' . $winnerDate->toDateString());
         $this->line('Dry run: ' . ($isDryRun ? 'yes' : 'no'));
 
         $created = 0;
         $skippedExisting = 0;
-        $skippedNoSubmissions = 0;
+        $usedFallbackLinks = 0;
+        $fallbackLinks = UtyoubeSetting::getFallbackWinnerLinks();
 
         for ($chance = 1; $chance <= 6; $chance++) {
             $existingWinner = UtyoubeWinner::query()
@@ -64,39 +66,39 @@ class PickDailyWinnersCommand extends Command
                 ->where('chance_number', $chance);
 
             $totalForChance = (clone $query)->count();
+            $picked = $totalForChance > 0 ? (clone $query)->inRandomOrder()->first() : null;
 
-            if ($totalForChance === 0) {
-                $skippedNoSubmissions++;
-                $this->warn("Chance {$chance}: no submissions found for {$sourceDate->toDateString()}.");
-                continue;
+            if ($picked) {
+                $youtubeLink = (string) $picked->youtube_link;
+                $this->line("Chance {$chance}: picked submission #{$picked->id} ({$youtubeLink}) from {$totalForChance} links.");
+            } else {
+                $youtubeLink = $fallbackLinks[$chance] ?? UtyoubeSetting::DEFAULT_FALLBACK_YOUTUBE;
+                $usedFallbackLinks++;
+                $this->warn("Chance {$chance}: no submissions for {$sourceDate->toDateString()} — using admin fallback link.");
+                $this->line("  → {$youtubeLink}");
+                $totalForChance = 0;
             }
-
-            $picked = (clone $query)->inRandomOrder()->first();
-
-            if (!$picked) {
-                $skippedNoSubmissions++;
-                $this->warn("Chance {$chance}: unable to pick a random submission.");
-                continue;
-            }
-
-            $this->line("Chance {$chance}: picked submission #{$picked->id} ({$picked->youtube_link}) from {$totalForChance} links.");
 
             if ($isDryRun) {
                 $created++;
                 continue;
             }
 
-            DB::transaction(function () use ($chance, $winnerDate, $totalForChance, $picked): void {
+            $pickedId = $picked?->id;
+
+            DB::transaction(function () use ($chance, $winnerDate, $totalForChance, $youtubeLink, $pickedId): void {
                 UtyoubeWinner::query()->create([
                     'winner_date' => $winnerDate->toDateString(),
                     'chance_number' => $chance,
-                    'youtube_link' => (string) $picked->youtube_link,
+                    'youtube_link' => $youtubeLink,
                     'total_links' => $totalForChance,
                     'total_submissions' => 0,
                     'clicks' => 0,
                 ]);
 
-                UtyoubeSubmission::query()->whereKey($picked->id)->delete();
+                if ($pickedId !== null) {
+                    UtyoubeSubmission::query()->whereKey($pickedId)->delete();
+                }
             });
 
             $created++;
@@ -116,7 +118,7 @@ class PickDailyWinnersCommand extends Command
         $this->info('Done.');
         $this->line('Created winners: ' . $created);
         $this->line('Skipped (already exists): ' . $skippedExisting);
-        $this->line('Skipped (no submissions): ' . $skippedNoSubmissions);
+        $this->line('Used admin fallback links (no submissions): ' . $usedFallbackLinks);
 
         Log::info('Cron hit: utyoube:pick-daily-winners completed', [
             'source_date' => $sourceDate->toDateString(),
@@ -124,7 +126,7 @@ class PickDailyWinnersCommand extends Command
             'dry_run' => $isDryRun,
             'created_winners' => $created,
             'skipped_existing' => $skippedExisting,
-            'skipped_no_submissions' => $skippedNoSubmissions,
+            'used_fallback_links' => $usedFallbackLinks,
             'finished_at' => now()->toDateTimeString(),
         ]);
 
