@@ -94,7 +94,7 @@ class UtyoubeWinner extends Model
         $limit = max(1, $limit);
 
         $query = self::query();
-        $query->whereDate('winner_date', '<', today()->subDay()); // Only winners from before today
+        // No winner_date filtering: return all winners (admin listing / history).
 
         if ($q !== '') {
             $query->where(function ($builder) use ($q): void {
