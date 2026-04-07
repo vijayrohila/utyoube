@@ -22,8 +22,6 @@ class PageController extends Controller
 
     public function index(Request $request)
     {
-        echo Carbon::now()->subDay(); die;
-
         $stats = UtyoubeStatistic::bumpVisit($request);
 
         return view('home', [

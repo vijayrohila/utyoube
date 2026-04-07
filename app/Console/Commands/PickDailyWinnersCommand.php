@@ -21,9 +21,9 @@ class PickDailyWinnersCommand extends Command
 
     public function handle(): int
     {
-        $sourceDate = $this->resolveDateOption('source-date', Carbon::yesterday());
+        $sourceDate = $this->resolveDateOption('source-date', Carbon::yesterday()->addHours(5)->addMinutes(30));
         // For "Past Day Winner": winners correspond to the same calendar day as the source submissions.
-        $winnerDate = $this->resolveDateOption('winner-date', Carbon::yesterday());
+        $winnerDate = $this->resolveDateOption('winner-date', Carbon::yesterday()->addHours(5)->addMinutes(30));
         $isDryRun = (bool) $this->option('dry-run');
         $startedAt = now();
 
