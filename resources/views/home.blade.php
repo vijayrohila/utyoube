@@ -155,7 +155,8 @@
 
       <select id="perPageSelect"
         class="bg-[#202020] border border-gray-500 rounded-md px-3 py-2 w-full md:w-[85px] select-custom-arrow">
-        <option selected>10</option>
+        <option>10</option>
+        <option selected>24</option>
         <option>25</option>
         <option>50</option>
         <option>100</option>
@@ -168,7 +169,7 @@
         <thead class="bg-[#202020] border-b border-gray-700">
           <tr>
             <th class="px-3 py-3">Date</th>
-            <th class="px-3 py-3">Total links</th>
+            <th class="px-3 py-3">Total links Submitted</th>
             <th class="px-3 py-3">Winners</th>
             <th class="px-3 py-3">Winner Profit by Visits</th>
           </tr>
@@ -536,7 +537,7 @@
     const searchInput = document.getElementById('winnerSearch');
 
     let currentPage = 1;
-    let perPage = 10;
+    let perPage = 24;
     let totalRecords = 0;
     let currentSearch = '';
     let searchTimeout = null;

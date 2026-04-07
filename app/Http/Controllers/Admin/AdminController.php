@@ -102,7 +102,7 @@ class AdminController extends Controller
     public function winnersApi(Request $request): JsonResponse
     {
         $page  = (int) $request->query('p', 1);
-        $limit = (int) $request->query('limit', 10);
+        $limit = (int) $request->query('limit', 24);
         $q     = trim((string) $request->query('q', ''));
 
         return response()->json(UtyoubeWinner::paginatedList($page, $limit, $q));

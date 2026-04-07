@@ -254,7 +254,7 @@
           <tr>
             <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Date</th>
             <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">YouTube Link</th>
-            <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Total links</th>
+            <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Total links Submitted</th>
             <!-- <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Submissions</th> -->
             <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-[0.2em]">Clicks</th>
           </tr>
@@ -274,7 +274,7 @@
 @section('scripts')
 <script>
   let currentPage = {{ request('p', 1) }};
-  let currentLimit = {{ request('limit', 10) }};
+  let currentLimit = {{ request('limit', 24) }};
   let currentSearch = "{{ addslashes(request('q', '')) }}";
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -293,7 +293,7 @@
     });
   }
 
-  function fetchWinners(page = 1, limit = 10, search = '') {
+  function fetchWinners(page = 1, limit = 24, search = '') {
     currentPage = page;
     currentLimit = limit;
     currentSearch = search;
